@@ -1,5 +1,4 @@
 import heapq #CS201 time
-import math
 
 m = []
 visited = []
@@ -35,7 +34,7 @@ q = []
 visited = []
 
 def dist(pta, ptb):
-    return math.sqrt((pta[0]-ptb[0])**2 + (pta[1]-ptb[1])**2)
+    return abs(pta[0]-ptb[0]) + abs(pta[1]-ptb[1])
 
 def add_neighbors(pt, steps):
     (r,c) = pt
