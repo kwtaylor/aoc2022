@@ -22,10 +22,8 @@ for i in range(0,num*10):
     pop_i = index[i%num]
     n,orig_i = mixed.pop(pop_i)
     push_i = pop_i + n
-    #fixup wrap-around. push to 0 is ambiguous??
-    while push_i < 0 or push_i >= num:
-        offset = push_i//num
-        push_i = (push_i % num) + offset
+    #simpler wrap around, index 0 is not special
+    push_i %= num-1
     mixed.insert(push_i,(n,orig_i))
     for fixup_i in range(0,num):
         #could technically optimize
