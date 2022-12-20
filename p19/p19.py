@@ -1,5 +1,8 @@
 import re
 from collections import deque
+from multiprocessing import Pool
+from functools import partial, reduce
+import operator
 
 #0 bp#,
 #1 ore robot ore,
@@ -38,16 +41,24 @@ def moves_from_state(bp, state):
     next_states.append( ((n_tl, n_o, n_c, n_ob, o_r, c_r, ob_r),0) )
 
     #possible factory actions
+    #make robot if enough source ore, but not so many to make more ore than you can use
+    max_o_cost = max(o_ro, ob_ro, g_ro)
     #ore robot
-    if o >= o_ro:
+    max_o_use = max_o_cost*n_tl
+    max_o_make = o+o_r*n_tl
+    if o >= o_ro and o_r < max_o_cost and max_o_make < max_o_use:
         next_states.append( ((n_tl, n_o-o_ro, n_c, n_ob, o_r+1, c_r, ob_r),0) )
 
     #clay robot
-    if o >= c_ro:
+    max_c_use = ob_rc*n_tl
+    max_c_make = c+c_r*n_tl
+    if o >= c_ro and c_r < ob_rc and max_c_make < max_c_use:
         next_states.append( ((n_tl, n_o-c_ro, n_c, n_ob, o_r, c_r+1, ob_r),0) )
 
     #obsidian robot
-    if o >= ob_ro and c >= ob_rc:
+    max_ob_use = g_rob*n_tl
+    max_ob_make = ob+ob_r*n_tl
+    if o >= ob_ro and c >= ob_rc and ob_r < g_rob and max_ob_make < max_ob_use:
         next_states.append( ((n_tl, n_o-ob_ro, n_c-ob_rc, n_ob, o_r, c_r, ob_r+1),0) )
 
     #geode robot (tally score)
@@ -89,8 +100,6 @@ def best_possible(bp, state, score):
 
 #bp is bp-1
 def find_best_score(bp, minutes):
-
-
     best_score = 0
 
     #queue entries are (state, score, best possible)
@@ -116,7 +125,7 @@ def find_best_score(bp, minutes):
             continue
         
         if i%10000 == 0:
-            print(i,"evaluating state",state,"with score",score,"best score",best_score,"best possible heuristic",bestpos)
+            print("#",bp,i,"evaluating state",state,"with score",score,"best score",best_score,"best possible heuristic",bestpos)
         i+=1
 
         for n_state, add_score in moves_from_state(bp, state):
@@ -131,26 +140,15 @@ def find_best_score(bp, minutes):
     return best_score
 
 #part 1
-q_sum = 0
-
-for bp in range(0,len(bps)):
-    bp_n = bps[bp][0]
-    print(f"**********Evaluating blueprint #{bp_n}********")
-    best=find_best_score(bp,24)
-    q = bp_n*best
-    print("Best score",best,"Quality",q)
-    q_sum+=q
-    
-print(q_sum)
+with Pool(8) as p:
+    find_24 = partial(find_best_score, minutes=24)
+    scores = list(p.map(find_24,range(len(bps))))
+    scores = [scores[i] * bps[i][0] for i in range(len(bps))]
+    print("QSUM:",sum(scores))
 
 #part 2
-g_prod = 1
+with Pool(8) as p:
+    find_32 = partial(find_best_score, minutes=32)
+    scores = list(p.map(find_32,range(3)))
+    print("PROD:",reduce(operator.mul,scores))
 
-for bp in range(0,3):
-    bp_n = bps[bp][0]
-    print(f"**********Evaluating blueprint #{bp_n}********")
-    best=find_best_score(bp,32)
-    g_prod *= best
-    print("Best score",best,"Product",g_prod)
-
-            
